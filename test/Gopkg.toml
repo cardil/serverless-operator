@@ -1,7 +1,15 @@
 # Force dep to vendor the code generators, which aren't imported just used at dev time.
 required = [
-  "github.com/knative/test-infra/scripts",
-  "github.com/knative/test-infra/tools/dep-collector",
+  "knative.dev/test-infra/scripts",
+  "knative.dev/test-infra/tools/dep-collector",
+  "knative.dev/serving/test",
+  "knative.dev/serving/test/e2e",
+  "knative.dev/serving/test/e2e/autotls/config",
+  "knative.dev/serving/test/e2e/autotls/config/disablenscert",
+  "knative.dev/serving/test/performance/benchmarks/dataplane-probe/continuous",
+  "knative.dev/serving-operator/test",
+  "knative.dev/serving-operator/test/e2e",
+  "knative.dev/serving-operator/test/resources",
 ]
 
 [prune]
@@ -10,40 +18,55 @@ required = [
   unused-packages = true
 
 [[prune.project]]
-  name = "github.com/knative/test-infra"
+  name = "knative.dev/test-infra"
   non-go = false
+
+[[prune.project]]
+  name = "knative.dev/serving"
+  go-tests = false
+  non-go = false
+  unused-packages = false
+
+[[prune.project]]
+  name = "knative.dev/serving-operator"
+  go-tests = false
+  non-go = false
+  unused-packages = false
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.15.3"
+  version = "kubernetes-1.16.4"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.15.3"
+  version = "kubernetes-1.16.4"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.15.3"
+  version = "kubernetes-1.16.4"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.15.3"
+  version = "kubernetes-1.16.4"
 
 [[override]]
   name = "k8s.io/kube-aggregator"
-  version = "kubernetes-1.15.3"
+  version = "kubernetes-1.16.4"
 
 [[constraint]]
-  branch = "master"
+  name = "knative.dev/serving"
+  source = "github.com/openshift/knative-serving"
+  branch = "release-v0.13.2"
+
+[[constraint]]
   name = "knative.dev/serving-operator"
+  source = "github.com/openshift-knative/serving-operator"
+  version = "v0.13.2"
 
 [[constraint]]
+  name = "knative.dev/test-infra"
+  source = "github.com/knative/test-infra"
   branch = "master"
-  name = "github.com/knative/test-infra"
-
-[[constraint]]
-  branch = "release-0.7"
-  name = "github.com/knative/serving"
 
 [[constraint]]
   branch = "master"
@@ -51,8 +74,8 @@ required = [
 
 [[constraint]]
   name = "github.com/openshift/api"
-  branch = "release-4.1"
+  branch = "release-4.3"
 
 [[ constraint ]]
   name = "github.com/openshift/client-go"
-  branch = "release-4.1"
+  branch = "release-4.3"

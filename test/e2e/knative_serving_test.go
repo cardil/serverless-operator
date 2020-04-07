@@ -1,10 +1,11 @@
 package e2e
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
-	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	"github.com/openshift-knative/serverless-operator/test"
 	v1a1test "github.com/openshift-knative/serverless-operator/test/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -311,10 +312,14 @@ func testUserPermissions(t *testing.T) {
 
 func waitForRouteServingText(t *testing.T, caCtx *test.Context, routeDomain, expectedText string) {
 	t.Helper()
+	address, err := url.Parse(routeDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pkgTest.WaitForEndpointState(
 		&pkgTest.KubeClient{Kube: caCtx.Clients.Kube},
 		t.Logf,
-		routeDomain,
+		address,
 		pkgTest.EventuallyMatchesBody(expectedText),
 		"WaitForRouteToServeText",
 		true); err != nil {
@@ -366,7 +371,7 @@ func testKnativeServingForGlobalProxy(t *testing.T, caCtx *test.Context) {
 	if _, err := test.CreateService(caCtx, proxyHelloworldService, testNamespace, proxyImage); err != nil {
 		t.Fatal("Failed to create service", err)
 	}
-	svcState, err := test.WaitForServiceState(caCtx, proxyHelloworldService, testNamespace, func(s *servingv1beta1.Service, err error) (bool, error) {
+	svcState, err := test.WaitForServiceState(caCtx, proxyHelloworldService, testNamespace, func(s *servingv1.Service, err error) (bool, error) {
 		if err != nil {
 			return false, err
 		}
