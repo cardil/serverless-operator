@@ -2,10 +2,8 @@ package test
 
 import (
 	"flag"
-	"os"
 	"os/user"
 	"path"
-	"testing"
 )
 
 // Flags holds the initialized test flags
@@ -33,11 +31,4 @@ func initializeFlags() *FlagsStruct {
 		"serverless-operator Subscription channel, \"4.3\" by default.")
 
 	return &f
-}
-
-// Main is a main test runner
-func Main(m *testing.M) {
-	// go1.13+ testing flags regression fix: https://github.com/golang/go/issues/31859
-	flag.Parse()
-	os.Exit(m.Run())
 }

@@ -87,11 +87,13 @@ function approve_csv {
   csv_version=$1
   channel=$2
 
+  logger.debug "Approving CSV ${csv_version} in channel ${channel}"
+
   # Switch channel and source if required
   oc get subscription "$OPERATOR" -n "${OPERATORS_NAMESPACE}" -oyaml | \
-    sed -e "s/\(.*channel:\).*/\1 ${channel}/" \
-        -e "s/\(.*source:\).*/\1 ${OLM_SOURCE}/" \
-    oc replace -f -
+    sed -e "s/\(.*channel:\).*/\1 '${channel}'/" \
+        -e "s/\(.*source:\).*/\1 '${OLM_SOURCE}'/" \
+    | oc apply -f -
 
   # Wait for the installplan to be available
   timeout 900 "[[ -z \$(find_install_plan $csv_version) ]]" || return 1
@@ -162,24 +164,31 @@ function teardown_serverless {
   if oc get knativeserving.operator.knative.dev knative-serving -n "${SERVING_NAMESPACE}" >/dev/null 2>&1; then
     logger.info 'Removing KnativeServing CR'
     oc delete knativeserving.operator.knative.dev knative-serving -n "${SERVING_NAMESPACE}" || return $?
+    logger.info 'Ensure no knative serving pods running'
+    timeout 600 "[[ \$(oc get pods -n ${SERVING_NAMESPACE} -o jsonpath='{.items}') != '[]' ]]" || return 9
   fi
-  logger.info 'Ensure no knative serving pods running'
-  timeout 600 "[[ \$(oc get pods -n ${SERVING_NAMESPACE} -o jsonpath='{.items}') != '[]' ]]" || return 9
 
   if oc get knativeeventing.operator.knative.dev knative-eventing -n "${EVENTING_NAMESPACE}" >/dev/null 2>&1; then
     logger.info 'Removing KnativeEventing CR'
     oc delete knativeeventing.operator.knative.dev knative-eventing -n "${EVENTING_NAMESPACE}" || return $?
+    logger.info 'Ensure no knative eventing pods running'
+    timeout 600 "[[ \$(oc get pods -n ${EVENTING_NAMESPACE} -o jsonpath='{.items}') != '[]' ]]" || return 9
   fi
-  logger.info 'Ensure no knative eventing pods running'
-  timeout 600 "[[ \$(oc get pods -n ${EVENTING_NAMESPACE} -o jsonpath='{.items}') != '[]' ]]" || return 9
 
-  oc delete subscription -n "${OPERATORS_NAMESPACE}" "${OPERATOR}" 2>/dev/null
-  for ip in $(oc get installplan -n "${OPERATORS_NAMESPACE}" | grep serverless-operator | cut -f1 -d' '); do
-    oc delete installplan -n "${OPERATORS_NAMESPACE}" $ip
-  done
-  for csv in $(oc get csv -n "${OPERATORS_NAMESPACE}" | grep serverless-operator | cut -f1 -d' '); do
-    oc delete csv -n "${OPERATORS_NAMESPACE}" "${csv}"
-  done
+  if oc get subscription -n "${OPERATORS_NAMESPACE}" "${OPERATOR}" >/dev/null 2>&1; then
+    logger.info 'Removing Serverless Operator subscription'
+    oc delete subscription -n "${OPERATORS_NAMESPACE}" "${OPERATOR}"
+  fi
+  oc get installplan -n "${OPERATORS_NAMESPACE}" 2>/dev/null \
+    | grep serverless-operator \
+    | cut -f1 -d' ' \
+    | xargs -I {} -r oc delete installplan -n "${OPERATORS_NAMESPACE}" {}
+  oc get csv -n "${OPERATORS_NAMESPACE}" 2>/dev/null \
+    | grep serverless-operator \
+    | cut -f1 -d' ' \
+    | xargs -I {} -r oc delete csv -n "${OPERATORS_NAMESPACE}" {}
+  logger.info 'Ensure no knative CRDs are left'
+  oc get crd -oname | grep 'knative.dev' | xargs -r oc delete
   logger.success 'Serverless has been uninstalled.'
 }
 

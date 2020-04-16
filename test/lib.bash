@@ -308,8 +308,9 @@ function teardown {
     return 0
   fi
   logger.warn "Teardown 💀"
-  delete_namespaces
+  teardown_serverless
   delete_catalog_source
+  delete_namespaces
   delete_users
 }
 

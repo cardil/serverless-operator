@@ -35,7 +35,7 @@ func CreateKnativeEventing(ctx *test.Context, name, namespace string) (*eventing
 		return nil, err
 	}
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up KnativeEventing '%s/%s'", eventing.Namespace, eventing.Name)
+		ctx.L.Logf("Cleaning up KnativeEventing '%s/%s'", eventing.Namespace, eventing.Name)
 		return DeleteKnativeEventing(ctx, name, namespace)
 	})
 	return eventing, nil

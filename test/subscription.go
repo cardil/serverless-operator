@@ -57,7 +57,7 @@ func WithOperatorReady(ctx *Context, subscriptionName string) (*v1alpha1.Subscri
 		return nil, err
 	}
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up CSV '%s/%s'", csv.Namespace, csv.Name)
+		ctx.L.Logf("Cleaning up CSV '%s/%s'", csv.Namespace, csv.Name)
 		return ctx.Clients.OLM.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{})
 	})
 
@@ -70,7 +70,7 @@ func CreateSubscription(ctx *Context, name string) (*v1alpha1.Subscription, erro
 		return nil, err
 	}
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up Subscription '%s/%s'", subs.Namespace, subs.Name)
+		ctx.L.Logf("Cleaning up Subscription '%s/%s'", subs.Namespace, subs.Name)
 		return ctx.Clients.OLM.OperatorsV1alpha1().Subscriptions(subs.Namespace).Delete(subs.Name, &metav1.DeleteOptions{})
 	})
 	return subs, nil

@@ -1,3 +1,5 @@
+// +build e2e
+
 package e2e
 
 import (
@@ -21,14 +23,6 @@ var knativeControlPlaneDeploymentNames = []string{
 
 func TestKnativeEventing(t *testing.T) {
 	caCtx := test.SetupClusterAdmin(t)
-
-	test.CleanupOnInterrupt(t, func() { test.CleanupAll(t, caCtx) })
-
-	t.Run("create subscription and wait for CSV to succeed", func(t *testing.T) {
-		if _, err := test.WithOperatorReady(caCtx, "serverless-operator-subscription"); err != nil {
-			t.Fatal("Failed", err)
-		}
-	})
 
 	t.Run("deploy knativeeventing cr and wait for it to be ready", func(t *testing.T) {
 		if _, err := v1a1test.WithKnativeEventingReady(caCtx, knativeEventing, knativeEventing); err != nil {
@@ -63,13 +57,6 @@ func TestKnativeEventing(t *testing.T) {
 
 		if err := test.WithDeploymentCount(caCtx, knativeEventing, 0); err != nil {
 			t.Fatalf("Some deployments were to be deleted but not in namespace %s. Err: %v", knativeEventing, err)
-		}
-	})
-
-	t.Run("undeploy serverless operator and check dependent operators removed", func(t *testing.T) {
-		caCtx.Cleanup(t)
-		if err := test.WaitForOperatorDepsDeleted(caCtx); err != nil {
-			t.Fatalf("Operators still running: %v", err)
 		}
 	})
 }

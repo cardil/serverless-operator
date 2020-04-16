@@ -1,10 +1,12 @@
+// +build e2e
+
 package e2e
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
-	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
 	"github.com/openshift-knative/serverless-operator/test"
 	v1a1test "github.com/openshift-knative/serverless-operator/test/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgTest "knative.dev/pkg/test"
 	servingoperatorv1alpha1 "knative.dev/serving-operator/pkg/apis/serving/v1alpha1"
+	servingv1beta1 "knative.dev/serving/pkg/apis/serving/v1beta1"
 )
 
 const (
@@ -33,14 +36,6 @@ const (
 
 func TestKnativeServing(t *testing.T) {
 	caCtx := test.SetupClusterAdmin(t)
-
-	test.CleanupOnInterrupt(t, func() { test.CleanupAll(t, caCtx) })
-
-	t.Run("create subscription and wait for CSV to succeed", func(t *testing.T) {
-		if _, err := test.WithOperatorReady(caCtx, "serverless-operator-subscription"); err != nil {
-			t.Fatal("Failed", err)
-		}
-	})
 
 	t.Run("deploy knativeserving cr and wait for it to be ready", func(t *testing.T) {
 		if _, err := v1a1test.WithKnativeServingReady(caCtx, knativeServing, knativeServing); err != nil {
@@ -108,12 +103,6 @@ func TestKnativeServing(t *testing.T) {
 		}
 	})
 
-	t.Run("undeploy serverless operator and check dependent operators removed", func(t *testing.T) {
-		caCtx.Cleanup(t)
-		if err := test.WaitForOperatorDepsDeleted(caCtx); err != nil {
-			t.Fatalf("Operators still running: %v", err)
-		}
-	})
 }
 
 func testKnativeVersusKubeServicesInOneNamespace(t *testing.T, caCtx *test.Context) {
@@ -202,8 +191,8 @@ func testUserPermissions(t *testing.T) {
 	paCtx := test.SetupProjectAdmin(t)
 	editCtx := test.SetupEdit(t)
 	viewCtx := test.SetupView(t)
-	test.CleanupOnInterrupt(t, func() { test.CleanupAll(t, paCtx, editCtx, viewCtx) })
-	defer test.CleanupAll(t, paCtx, editCtx, viewCtx)
+	test.CleanupOnInterrupt(t, func() { test.CleanupAll(paCtx, editCtx, viewCtx) })
+	defer test.CleanupAll(paCtx, editCtx, viewCtx)
 
 	tests := []struct {
 		name        string
@@ -311,10 +300,14 @@ func testUserPermissions(t *testing.T) {
 
 func waitForRouteServingText(t *testing.T, caCtx *test.Context, routeDomain, expectedText string) {
 	t.Helper()
+	address, err := url.Parse(routeDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pkgTest.WaitForEndpointState(
 		&pkgTest.KubeClient{Kube: caCtx.Clients.Kube},
 		t.Logf,
-		routeDomain,
+		address,
 		pkgTest.EventuallyMatchesBody(expectedText),
 		"WaitForRouteToServeText",
 		true); err != nil {

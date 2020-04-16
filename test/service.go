@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,6 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
+	servingv1beta1 "knative.dev/serving/pkg/apis/serving/v1beta1"
 )
 
 func Service(name, namespace, image string) *servingv1beta1.Service {
@@ -23,10 +24,10 @@ func Service(name, namespace, image string) *servingv1beta1.Service {
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: servingv1beta1.ServiceSpec{
-			ConfigurationSpec: servingv1beta1.ConfigurationSpec{
-				Template: servingv1beta1.RevisionTemplateSpec{
-					Spec: servingv1beta1.RevisionSpec{
+		Spec: servingv1.ServiceSpec{
+			ConfigurationSpec: servingv1.ConfigurationSpec{
+				Template: servingv1.RevisionTemplateSpec{
+					Spec: servingv1.RevisionSpec{
 						PodSpec: corev1.PodSpec{
 							Containers: []corev1.Container{{
 								Image: image,
@@ -63,7 +64,7 @@ func CreateService(ctx *Context, name, namespace, image string) (*servingv1beta1
 		return nil, err
 	}
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up Knative Service '%s/%s'", service.Namespace, service.Name)
+		ctx.L.Logf("Cleaning up Knative Service '%s/%s'", service.Namespace, service.Name)
 		return ctx.Clients.Serving.ServingV1beta1().Services(namespace).Delete(service.Name, &metav1.DeleteOptions{})
 	})
 	return service, nil
@@ -203,7 +204,7 @@ func CreateDeployment(ctx *Context, name, namespace, image string) error {
 	}
 
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up Deployment '%s/%s'", deployment.Namespace, deployment.Name)
+		ctx.L.Logf("Cleaning up Deployment '%s/%s'", deployment.Namespace, deployment.Name)
 		return ctx.Clients.Kube.AppsV1().Deployments(namespace).Delete(deployment.Name, &metav1.DeleteOptions{})
 	})
 
@@ -238,7 +239,7 @@ func CreateKubeService(ctx *Context, name, namespace string) (*corev1.Service, e
 	}
 
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up K8s Service '%s/%s'", kubeService.Namespace, kubeService.Name)
+		ctx.L.Logf("Cleaning up K8s Service '%s/%s'", kubeService.Namespace, kubeService.Name)
 		return ctx.Clients.Serving.ServingV1beta1().Services(namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 	})
 
@@ -265,7 +266,7 @@ func WithRouteForServiceReady(ctx *Context, serviceName, namespace string) (*rou
 	}
 
 	ctx.AddToCleanup(func() error {
-		ctx.T.Logf("Cleaning up OCP Route '%s/%s'", r.Namespace, r.Name)
+		ctx.L.Logf("Cleaning up OCP Route '%s/%s'", r.Namespace, r.Name)
 		return ctx.Clients.Route.Routes(namespace).Delete(route.Name, &metav1.DeleteOptions{})
 	})
 

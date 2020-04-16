@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	servingversioned "github.com/knative/serving/pkg/client/clientset/versioned"
 	configV1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/operator-framework/operator-lifecycle-manager/pkg/api/client"
@@ -20,12 +19,13 @@ import (
 	eventingoperatorv1alpha1 "knative.dev/eventing-operator/pkg/client/clientset/versioned/typed/eventing/v1alpha1"
 	servingoperatorversioned "knative.dev/serving-operator/pkg/client/clientset/versioned"
 	servingoperatorv1alpha1 "knative.dev/serving-operator/pkg/client/clientset/versioned/typed/serving/v1alpha1"
+	servingversioned "knative.dev/serving/pkg/client/clientset/versioned"
 )
 
 // Context holds objects related to test execution
 type Context struct {
 	Name        string
-	T           *testing.T
+	L           Logger
 	Clients     *Clients
 	CleanupList []CleanupFunc
 }
@@ -52,53 +52,58 @@ type CleanupFunc func() error
 var contexts []*Context
 
 // setupContextsOnce creates context objects for all kubeconfigs passed from the command line
-func setupContextsOnce(t *testing.T) {
+func setupContextsOnce(t *testing.T) Logger {
+	log := GetLogger(t)
 	if len(contexts) == 0 {
 		kubeconfigs := strings.Split(Flags.Kubeconfigs, ",")
 		for _, cfg := range kubeconfigs {
 			clients, err := NewClients(cfg)
 			if err != nil {
-				t.Fatalf("Couldn't initialize clients for config %s: %v", cfg, err)
+				log.Fatalf("Couldn't initialize clients for config %s: %v", cfg, err)
 			}
 			ctx := &Context{
-				T:       t,
+				L:       log,
 				Clients: clients,
 			}
 			contexts = append(contexts, ctx)
 		}
+		log.Logf("%d contexts have been configured.", len(contexts))
 	}
+	return log
 }
 
 // SetupClusterAdmin returns context for Cluster Admin user
 func SetupClusterAdmin(t *testing.T) *Context {
-	setupContextsOnce(t)
-	return contextAtIndex(0, "ClusterAdmin", t)
+	log := setupContextsOnce(t)
+	return contextAtIndex(0, "ClusterAdmin", log)
 }
 
 // SetupProjectAdmin returns context for Project Admin user
 func SetupProjectAdmin(t *testing.T) *Context {
-	setupContextsOnce(t)
-	return contextAtIndex(1, "ProjectAdmin", t)
+	log := setupContextsOnce(t)
+	return contextAtIndex(1, "ProjectAdmin", log)
 }
 
 // SetupEdit returns context for user with Edit role
 func SetupEdit(t *testing.T) *Context {
-	setupContextsOnce(t)
-	return contextAtIndex(2, "Edit", t)
+	log := setupContextsOnce(t)
+	return contextAtIndex(2, "Edit", log)
 }
 
 // SetupView returns context for user with View role
 func SetupView(t *testing.T) *Context {
-	setupContextsOnce(t)
-	return contextAtIndex(3, "View", t)
+	log := setupContextsOnce(t)
+	return contextAtIndex(3, "View", log)
 }
 
-func contextAtIndex(i int, role string, t *testing.T) *Context {
+func contextAtIndex(i int, role string, log Logger) *Context {
 	if len(contexts) < i+1 {
-		t.Fatalf("kubeconfig for user with %s role not present", role)
+		log.Fatalf("kubeconfig for user with %s role not present", role)
 	}
 	contexts[i].Name = role
-	return contexts[i]
+	ctx := contexts[i]
+	log.Logf("Working with context named: %s", ctx.Name)
+	return ctx
 }
 
 // NewClients instantiates and returns several clientsets required for making request to the
@@ -205,19 +210,21 @@ func newOpenShiftProxyClient(cfg *rest.Config) (configV1.ConfigV1Interface, erro
 }
 
 // Cleanup for all contexts
-func CleanupAll(t *testing.T, contexts ...*Context) {
+func CleanupAll(contexts ...*Context) {
 	for _, ctx := range contexts {
-		ctx.Cleanup(t)
+		ctx.Cleanup()
 	}
 }
 
 // Cleanup iterates through the list of registered CleanupFunc functions and calls them
-func (ctx *Context) Cleanup(t *testing.T) {
-	for _, f := range ctx.CleanupList {
+func (ctx *Context) Cleanup() {
+	for idx, f := range ctx.CleanupList {
+		ctx.L.Logf("Running cleanup[%d]: %v", idx, f)
 		if err := f(); err != nil {
-			t.Logf("Failed to clean up: %v", err)
+			ctx.L.Logf("Failed to clean up: %v", err)
 		}
 	}
+	ctx.L.finalize()
 }
 
 // AddToCleanup adds the cleanup function as the first function to the cleanup list,
