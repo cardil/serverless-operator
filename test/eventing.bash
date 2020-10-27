@@ -16,7 +16,7 @@ function upstream_knative_eventing_e2e {
   source "${KNATIVE_EVENTING_HOME}/openshift/e2e-common.sh"
 
   # run_e2e_tests defined in knative-eventing
-  run_e2e_tests || failed=$?
+  test_label='eventing-e2e' run_e2e_tests || failed=$?
 
   return $failed
 }
@@ -39,7 +39,7 @@ function run_eventing_preupgrade_test {
   local image_template
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_EVENTING_VERSION}:knative-eventing-test-{{.Name}}"
 
-  go_test_e2e -tags=preupgrade \
+  test_label='eventing-preupgrade' go_test_e2e -tags=preupgrade \
     -timeout=10m ./test/upgrade \
     --imagetemplate="${image_template}" \
     || return $?
@@ -58,7 +58,7 @@ function start_eventing_prober {
 
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_EVENTING_VERSION}:knative-eventing-test-{{.Name}}"
 
-  go_test_e2e -tags=probe \
+  test_label='eventing-probe' go_test_e2e -tags=probe \
     -timeout=30m \
     ./test/upgrade \
     --pipefile="${EVENTING_PROBER_FILE}" \
@@ -105,7 +105,7 @@ function run_eventing_postupgrade_test {
 
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_EVENTING_VERSION}:knative-eventing-test-{{.Name}}"
 
-  go_test_e2e -tags=postupgrade \
+  test_label='eventing-postupgrade' go_test_e2e -tags=postupgrade \
     -timeout=10m ./test/upgrade \
     --imagetemplate="${image_template}" \
     || return $?

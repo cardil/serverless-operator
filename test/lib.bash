@@ -38,7 +38,8 @@ function register_teardown {
 # Parameters: $1..$n - any go test flags, then directories containing the tests to run.
 function go_test_e2e {
   local go_test_args=()
-  local retcode
+  local retcode test_label
+  test_label="${test_label:-e2e-test}"
   # Remove empty args as `go test` will consider it as running tests for the
   # current directory, which is not expected.
   [[ ! " $*" == *" -tags="* ]] && go_test_args+=("-tags=e2e")
@@ -46,7 +47,7 @@ function go_test_e2e {
     [[ -n "$arg" ]] && go_test_args+=("$arg")
   done
   set +Eeuo pipefail
-  report_go_test -race -count=1 "${go_test_args[@]}"
+  report_go_test -race -count=1 "${go_test_args[@]}" | ts "%H:%M:%.S [${test_label}]"
   retcode=$?
   set -Eeuo pipefail
 

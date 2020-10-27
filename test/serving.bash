@@ -53,13 +53,15 @@ function upstream_knative_serving_e2e_and_conformance_tests {
     parallel=2
   fi
 
-  go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
+  test_label='serving-conformance' go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
+    ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     --resolvabledomain --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$image_template" || failed=1
 
   # Run the helloworld test with an image pulled into the internal registry.
   oc tag -n serving-tests "registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_SERVING_VERSION}:knative-serving-test-helloworld" "helloworld:latest" --reference-policy=local
-  go_test_e2e -tags=e2e -timeout=30m ./test/e2e -run "^(TestHelloWorld)$" \
+  test_label='serving-helloworld' go_test_e2e -tags=e2e -timeout=30m \
+    ./test/e2e -run "^(TestHelloWorld)$" \
     --resolvabledomain --kubeconfig "$KUBECONFIG" \
     --imagetemplate "image-registry.openshift-image-registry.svc:5000/serving-tests/{{.Name}}" || failed=2
   
@@ -90,7 +92,8 @@ function upstream_knative_serving_e2e_and_conformance_tests {
 
   # Run HA tests separately as they're stopping core Knative Serving pods
   # Define short -spoofinterval to ensure frequent probing while stopping pods
-  go_test_e2e -tags=e2e -timeout=15m -failfast -parallel=1 ./test/ha \
+  test_label='serving-ha' go_test_e2e -tags=e2e -timeout=15m \
+    -failfast -parallel=1 ./test/ha \
     -replicas="${REPLICAS}" -buckets="${BUCKETS}" -spoofinterval="10ms" \
     --resolvabledomain \
     --kubeconfig "$KUBECONFIG" \
@@ -117,7 +120,8 @@ function run_serving_preupgrade_test {
 
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_SERVING_VERSION}:knative-serving-test-{{.Name}}"
 
-  go_test_e2e -tags=preupgrade -timeout=20m ./test/upgrade \
+  test_label='serving-preupgrade' go_test_e2e -tags=preupgrade \
+    -timeout=20m ./test/upgrade \
     --imagetemplate "$image_template" \
     --kubeconfig "$KUBECONFIG" \
     --resolvabledomain || return $?
@@ -144,7 +148,7 @@ function start_serving_prober {
 
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_SERVING_VERSION}:knative-serving-test-{{.Name}}"
 
-  go_test_e2e -tags=probe \
+  test_label='serving-probe' go_test_e2e -tags=probe \
     -timeout=30m \
     ./test/upgrade \
     -probe.success_fraction=${probe_fraction} \
@@ -207,7 +211,7 @@ function run_serving_postupgrade_test {
 
   image_template="registry.svc.ci.openshift.org/openshift/knative-${KNATIVE_SERVING_VERSION}:knative-serving-test-{{.Name}}"
 
-  go_test_e2e -tags=postupgrade \
+  test_label='serving-postupgrade' go_test_e2e -tags=postupgrade \
     -timeout=20m ./test/upgrade \
     --imagetemplate "$image_template" \
     --kubeconfig "$KUBECONFIG" \
