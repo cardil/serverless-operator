@@ -44,7 +44,7 @@ func TestServerlessUpgrade(t *testing.T) {
 		Tests: pkgupgrade.Tests{
 			PreUpgrade:  preUpgradeTests(),
 			PostUpgrade: postUpgradeTests(ctx),
-			Continual: merge(
+			Continual: test.Merge(
 				[]pkgupgrade.BackgroundOperation{
 					servingupgrade.ProbeTest(),
 					servingupgrade.AutoscaleSustainingWithTBCTest(),
@@ -91,18 +91,6 @@ func TestClusterUpgrade(t *testing.T) {
 		},
 	}
 	suite.Execute(cfg)
-}
-
-func merge(slices ...[]pkgupgrade.BackgroundOperation) []pkgupgrade.BackgroundOperation {
-	l := 0
-	for _, slice := range slices {
-		l += len(slice)
-	}
-	result := make([]pkgupgrade.BackgroundOperation, 0, l)
-	for _, slice := range slices {
-		result = append(result, slice...)
-	}
-	return result
 }
 
 func preUpgradeTests() []pkgupgrade.Operation {
