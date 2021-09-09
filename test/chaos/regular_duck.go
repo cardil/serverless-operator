@@ -14,31 +14,32 @@ import (
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
-const chaosduckName = "chaosduck"
+const chaosduck = "chaosduck"
 
 // NewRegularDuck creates a regular chaos duck that target configured namespaces.
 func NewRegularDuck() Duck {
 	return &duffy{}
 }
 
+// see: https://p.kindpng.com/picc/s/190-1902027_daffy-duck-png-background-daffy-duck-et-bugs.png
 type duffy struct {
 	*stateCtx
-	channelRetriver
+	synchronized
 }
 
-func (d *duffy) takenCareOf(sctx *stateCtx, gr channelRetriver) Duck {
+func (d *duffy) takenCareOf(sctx *stateCtx, synch synchronized) Duck {
 	return &duffy{
-		stateCtx:        sctx.named(chaosduckName),
-		channelRetriver: gr,
+		stateCtx:     sctx.named("Duffy"),
+		synchronized: synch,
 	}
 }
 
 func (d *duffy) Quak() {
 	t := d.tb
-	clusterCtx := test.SetupClusterAdmin(t)
+	testCtx := test.SetupClusterAdmin(t)
 	var wg *sync.WaitGroup
 	defer func() {
-		clusterCtx.Cleanup(t)
+		testCtx.Cleanup(t)
 		d.log.Info("Clean up done.")
 		if wg != nil {
 			d.log.Info("Done, sir.")
@@ -46,30 +47,30 @@ func (d *duffy) Quak() {
 		}
 	}()
 
-	for _, namespace := range d.cfg.Namespaces {
-		d.quakOnNamespace(namespace, clusterCtx)
+	for _, namespace := range d.cfg.Leaderelection.Namespaces {
+		d.quakOnNamespace(namespace, testCtx)
 	}
 	wg = d.watchTheWorldBurn()
 }
 
-func (d *duffy) quakOnNamespace(namespace string, clusterCtx *test.Context) {
+func (d *duffy) quakOnNamespace(namespace string, testCtx *test.Context) {
 	if d.cfg.Noop {
 		d.log.Warnf("Skipping quaking on a namespace: %s", namespace)
 		return
 	}
 	d.log.Infof("Unleashing duck on namespace: %s", namespace)
 	sd := dddddDuffy{
-		duffy:      d,
-		clusterCtx: clusterCtx,
-		namespace:  namespace,
+		duffy:     d,
+		testCtx:   testCtx,
+		namespace: namespace,
 	}
 	sd.quak()
 }
 
 type dddddDuffy struct {
 	*duffy
-	namespace  string
-	clusterCtx *test.Context
+	namespace string
+	testCtx   *test.Context
 }
 
 func (d *dddddDuffy) quak() {
@@ -81,14 +82,14 @@ func (d *dddddDuffy) quak() {
 
 func (d *dddddDuffy) serviceAccount() {
 	d.log.Infof("Creating service account: %s", d.namespace)
-	k := d.clusterCtx.Clients.Kube
+	k := d.testCtx.Clients.Kube
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: chaosduckName},
+		ObjectMeta: metav1.ObjectMeta{Name: chaosduck},
 	}
 	serviceAccounts := k.CoreV1().ServiceAccounts(d.namespace)
 	_, err := serviceAccounts.Create(d.ctx, sa, metav1.CreateOptions{})
 	assert.NilError(d.tb, err)
-	d.clusterCtx.AddToCleanup(func() error {
+	d.testCtx.AddToCleanup(func() error {
 		d.log.Infof("Removing service account: %s", d.namespace)
 		return serviceAccounts.Delete(d.ctx, sa.GetName(), metav1.DeleteOptions{})
 	})
@@ -96,10 +97,10 @@ func (d *dddddDuffy) serviceAccount() {
 
 func (d *dddddDuffy) role() {
 	d.log.Infof("Creating role: %s", d.namespace)
-	k := d.clusterCtx.Clients.Kube
+	k := d.testCtx.Clients.Kube
 	roles := k.RbacV1().Roles(d.namespace)
 	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{Name: chaosduckName},
+		ObjectMeta: metav1.ObjectMeta{Name: chaosduck},
 		Rules: []rbacv1.PolicyRule{{
 			APIGroups: []string{""},
 			Resources: []string{"pods"},
@@ -112,7 +113,7 @@ func (d *dddddDuffy) role() {
 	}
 	_, err := roles.Create(d.ctx, role, metav1.CreateOptions{})
 	assert.NilError(d.tb, err)
-	d.clusterCtx.AddToCleanup(func() error {
+	d.testCtx.AddToCleanup(func() error {
 		d.log.Infof("Removing role: %s", d.namespace)
 		return roles.Delete(d.ctx, role.GetName(), metav1.DeleteOptions{})
 	})
@@ -120,24 +121,24 @@ func (d *dddddDuffy) role() {
 
 func (d *dddddDuffy) roleBinding() {
 	d.log.Infof("Creating role binding: %s", d.namespace)
-	k := d.clusterCtx.Clients.Kube
+	k := d.testCtx.Clients.Kube
 	roleBindings := k.RbacV1().RoleBindings(d.namespace)
 	rb := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{Name: chaosduckName},
+		ObjectMeta: metav1.ObjectMeta{Name: chaosduck},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "Role",
-			Name:     chaosduckName,
+			Name:     chaosduck,
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      chaosduckName,
+			Name:      chaosduck,
 			Namespace: d.namespace,
 		}},
 	}
 	_, err := roleBindings.Create(d.ctx, rb, metav1.CreateOptions{})
 	assert.NilError(d.tb, err)
-	d.clusterCtx.AddToCleanup(func() error {
+	d.testCtx.AddToCleanup(func() error {
 		d.log.Infof("Removing role binding: %s", d.namespace)
 		return roleBindings.Delete(d.ctx, rb.GetName(), metav1.DeleteOptions{})
 	})
@@ -145,23 +146,23 @@ func (d *dddddDuffy) roleBinding() {
 
 func (d *dddddDuffy) deployment() {
 	d.log.Infof("Creating deployment: %s", d.namespace)
-	k := d.clusterCtx.Clients.Kube
+	k := d.testCtx.Clients.Kube
 	var falseVal = false
 	deployments := k.AppsV1().Deployments(d.namespace)
 	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: chaosduckName},
+		ObjectMeta: metav1.ObjectMeta{Name: chaosduck},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": chaosduckName},
+				MatchLabels: map[string]string{"app": chaosduck},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": chaosduckName},
+					Labels: map[string]string{"app": chaosduck},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: chaosduckName,
+					ServiceAccountName: chaosduck,
 					Containers: []corev1.Container{{
-						Name: chaosduckName,
+						Name: chaosduck,
 						// TODO: use dynamic image resolution
 						Image: d.cfg.Image,
 						Env: []corev1.EnvVar{{
@@ -180,7 +181,7 @@ func (d *dddddDuffy) deployment() {
 	}
 	_, err := deployments.Create(d.ctx, deployment, metav1.CreateOptions{})
 	assert.NilError(d.tb, err)
-	d.clusterCtx.AddToCleanup(func() error {
+	d.testCtx.AddToCleanup(func() error {
 		d.log.Infof("Removing deployment: %s", d.namespace)
 		return deployments.Delete(d.ctx, deployment.GetName(), metav1.DeleteOptions{})
 	})

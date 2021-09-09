@@ -9,6 +9,8 @@ import (
 	"github.com/openshift-knative/serverless-operator/test/chaos"
 	"github.com/openshift-knative/serverless-operator/test/upgrade"
 	"go.uber.org/zap"
+	kafkaupgrade "knative.dev/eventing-kafka/test/upgrade"
+	"knative.dev/eventing-kafka/test/upgrade/continual"
 	pkgupgrade "knative.dev/pkg/test/upgrade"
 )
 
@@ -20,15 +22,15 @@ func TestChaos(t *testing.T) {
 
 	// TODO: remove this after SRVKE-927 root cause is known.
 	suite.Tests = pkgupgrade.Tests{
-		// Continual: test.Merge(
-		// 	kafkaupgrade.SourceContinualTests(continual.SourceTestOptions{}),
-		// ),
+		Continual: test.Merge(
+			kafkaupgrade.SourceContinualTests(continual.SourceTestOptions{}),
+		),
 	}
 	suite.Installations.UpgradeWith = []pkgupgrade.Operation{
 		pkgupgrade.NewOperation("UnleashChaosDuck", func(c pkgupgrade.Context) {
 			h := chaos.NewHerder(c, chaos.NewConfigOfFail(c))
 			h.LookAfter(chaos.NewRegularDuck())
-			// h.LookAfter(chaos.NewKafkaSourceDuck())
+			h.LookAfter(chaos.NewKafkaSourceDuck())
 			h.Herd()
 		}),
 	}

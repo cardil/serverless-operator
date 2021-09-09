@@ -5,6 +5,6 @@ type Duck interface {
 	// Quak at K8s resources destroying them.
 	Quak()
 
-	takenCareOf(*stateCtx, channelRetriver) Duck
+	takenCareOf(*stateCtx, synchronized) Duck
 }
 

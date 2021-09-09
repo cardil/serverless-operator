@@ -12,11 +12,22 @@ import (
 
 // Config holds configuration for the environment.
 type Config struct {
-	Timeout    time.Duration
-	Wait       time.Duration
-	Image      string
+	Timeout        time.Duration
+	Wait           time.Duration
+	Image          string
+	Noop           bool
+	Leaderelection LeaderelectionCfg
+	KafkaSource    KafkaSourceCfg
+}
+
+// LeaderelectionCfg holds configuration for leaderelection chaosduck.
+type LeaderelectionCfg struct {
 	Namespaces []string
-	Noop       bool
+}
+
+// KafkaSourceCfg holds configuration for Kafka source based chaosduck.
+type KafkaSourceCfg struct {
+	NamespacePrefixes []string
 }
 
 // NewConfigOfFail creates new configuration or fail doing so.
@@ -30,14 +41,22 @@ func NewConfigOfFail(ctx pkgupgrade.Context) Config {
 
 func newConfig() (Config, error) {
 	defaults := Config{
-		Timeout: 12 * time.Second,
-		Wait:    5 * time.Second,
-		Image:   "quay.io/knative-e2e-test-images/chaosduck-7965e91b0d0f7fca30cc0eeb761e8bae",
-		Noop:    false,
-		Namespaces: []string{
-			"knative-serving",
-			"knative-serving-ingress",
-			"knative-eventing",
+		Timeout: 5 * time.Minute,
+		Wait:    10 * time.Second,
+		// TODO: replace image with actual resolvable one.
+		Image: "quay.io/knative-e2e-test-images/chaosduck-7965e91b0d0f7fca30cc0eeb761e8bae",
+		Noop:  false,
+		Leaderelection: LeaderelectionCfg{
+			Namespaces: []string{
+				"knative-serving",
+				"knative-serving-ingress",
+				"knative-eventing",
+			},
+		},
+		KafkaSource: KafkaSourceCfg{
+			NamespacePrefixes: []string{
+				"eventing-e2e",
+			},
 		},
 	}
 	err := envconfig.Process("SERVERLESS_CHAOSE2E", &defaults)
@@ -58,7 +77,7 @@ func (s *stateCtx) named(name string) *stateCtx {
 	return &stateCtx{
 		ctx: s.ctx,
 		tb:  s.tb,
-		log: s.log.With("name", name),
+		log: s.log.With("said", name),
 		cfg: s.cfg,
 	}
 }

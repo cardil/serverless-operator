@@ -13,7 +13,7 @@ import (
 type Herder interface {
 	LookAfter(duck Duck)
 	Herd()
-	channelRetriver
+	synchronized
 }
 
 // NewHerder creates a field on which Duck's could Quak at K8s resources.
@@ -30,7 +30,7 @@ func NewHerder(upgradeCtx pkgupgrade.Context, cfg Config) Herder {
 	}
 }
 
-type channelRetriver interface {
+type synchronized interface {
 	finished() <-chan *sync.WaitGroup
 	ready() *sync.WaitGroup
 }
@@ -50,7 +50,7 @@ func (d *doroty) LookAfter(duck Duck) {
 }
 
 func (d *doroty) Herd() {
-	log := d.log.With("name", "Doroty")
+	log := d.log.With("said", "Doroty")
 	log.Infof("Herding %d ducks...", len(d.ducks))
 	d.readyWg.Add(len(d.ducks))
 	for _, duck := range d.ducks {
@@ -65,6 +65,9 @@ func (d *doroty) Herd() {
 	}
 	waitOrFail(d.tb, finishedWg, "finish quaking", time.Minute)
 	close(d.finishCh)
+	colddown := 20 * time.Second
+	d.log.Infof("Wait %v until dust settle...", colddown)
+	time.Sleep(colddown)
 }
 
 func (d *doroty) awaitAndSleep(log *zap.SugaredLogger) {
