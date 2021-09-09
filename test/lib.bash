@@ -314,7 +314,7 @@ function create_htpasswd_users {
     touch users.htpasswd
   fi
 
-  logger.info 'Add users to htpasswd'
+  logger.info 'LookAfter users to htpasswd'
   for i in $(seq 1 "$num_users"); do
     htpasswd -b users.htpasswd "user${i}" "password${i}"
   done

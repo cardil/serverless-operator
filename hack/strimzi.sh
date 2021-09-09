@@ -7,7 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/__sources__.bash"
 
 set -Eeuo pipefail
 
-if [[ $UNINSTALL_STRIMZI == "true" ]]; then
+if [[ ${UNINSTALL_STRIMZI:-false} == "true" ]]; then
   uninstall_strimzi || exit 1
 else
   install_strimzi || exit 2

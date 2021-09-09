@@ -29,7 +29,7 @@ import (
 // Context holds objects related to test execution
 type Context struct {
 	Name        string
-	T           *testing.T
+	T           testing.TB
 	Clients     *Clients
 	CleanupList []CleanupFunc
 }
@@ -58,7 +58,7 @@ type CleanupFunc func() error
 var clients []*Clients
 
 // setupClientsOnce creates Clients for all kubeconfigs passed from the command line
-func setupClientsOnce(t *testing.T) {
+func setupClientsOnce(t testing.TB) {
 	if len(clients) == 0 {
 		kubeconfigs := strings.Split(Flags.Kubeconfigs, ",")
 		for _, cfg := range kubeconfigs {
@@ -72,30 +72,30 @@ func setupClientsOnce(t *testing.T) {
 }
 
 // SetupClusterAdmin returns context for Cluster Admin user
-func SetupClusterAdmin(t *testing.T) *Context {
+func SetupClusterAdmin(t testing.TB) *Context {
 	setupClientsOnce(t)
 	return contextAtIndex(0, "ClusterAdmin", t)
 }
 
 // SetupProjectAdmin returns context for Project Admin user
-func SetupProjectAdmin(t *testing.T) *Context {
+func SetupProjectAdmin(t testing.TB) *Context {
 	setupClientsOnce(t)
 	return contextAtIndex(1, "ProjectAdmin", t)
 }
 
 // SetupEdit returns context for user with Edit role
-func SetupEdit(t *testing.T) *Context {
+func SetupEdit(t testing.TB) *Context {
 	setupClientsOnce(t)
 	return contextAtIndex(2, "Edit", t)
 }
 
 // SetupView returns context for user with View role
-func SetupView(t *testing.T) *Context {
+func SetupView(t testing.TB) *Context {
 	setupClientsOnce(t)
 	return contextAtIndex(3, "View", t)
 }
 
-func contextAtIndex(i int, role string, t *testing.T) *Context {
+func contextAtIndex(i int, role string, t testing.TB) *Context {
 	if len(clients) < i+1 {
 		t.Fatalf("kubeconfig for user with %s role not present", role)
 	}
@@ -144,14 +144,14 @@ func NewClients(kubeconfig string) (*Clients, error) {
 }
 
 // CleanupAll cleans up all contexts
-func CleanupAll(t *testing.T, contexts ...*Context) {
+func CleanupAll(t testing.TB, contexts ...*Context) {
 	for _, ctx := range contexts {
 		ctx.Cleanup(t)
 	}
 }
 
 // Cleanup iterates through the list of registered CleanupFunc functions and calls them
-func (ctx *Context) Cleanup(t *testing.T) {
+func (ctx *Context) Cleanup(t testing.TB) {
 	if t.Failed() {
 		// Do not clean up resources when test failed for debug.
 		return
@@ -170,7 +170,7 @@ func (ctx *Context) AddToCleanup(f CleanupFunc) {
 }
 
 // CleanupOnInterrupt will execute the function cleanup if an interrupt signal is caught
-func CleanupOnInterrupt(t *testing.T, cleanup func()) {
+func CleanupOnInterrupt(t testing.TB, cleanup func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {

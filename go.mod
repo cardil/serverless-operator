@@ -6,6 +6,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.6
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/manifestival/controller-runtime-client v0.4.0
 	github.com/manifestival/manifestival v0.7.0
 	github.com/openshift/api v0.0.0-20210428205234-a8389931bee7
@@ -18,6 +19,7 @@ require (
 	github.com/prometheus/common v0.30.0
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/zap v1.19.0
+	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.20.7
 	k8s.io/apimachinery v0.20.7
 	k8s.io/client-go v12.0.0+incompatible
