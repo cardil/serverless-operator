@@ -40,7 +40,7 @@ func (d *donald) Quak() {
 	for {
 		select {
 		case wg = <-ch:
-			d.log.Info("someone told me to stop")
+			d.log.Info("Herder told me to stop quaking :-<")
 			return
 		default:
 			d.quak(testCtx, ns)
@@ -65,7 +65,7 @@ func (d *donald) quak(testCtx *test.Context, namespaces []string) {
 	for _, kafkaSource := range victims {
 		d.quakAt(kafkaSource, testCtx)
 	}
-	d.log.Info("Done with the quaking. Doing to sleep for now...")
+	d.log.Info("Done with the quaking. Going to sleep for now...")
 	time.Sleep(d.cfg.Wait)
 }
 
