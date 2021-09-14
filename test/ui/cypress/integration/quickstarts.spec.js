@@ -7,7 +7,7 @@ describe('OCP UI for Serverless', () => {
     openShiftConsole.login()
   })
 
-  it('has Serverless quickstarts', () => {
+  it.skip('has Serverless quickstarts', () => {
     cy.visit('/quickstart')
     cy.contains('Exploring Serverless applications')
   })

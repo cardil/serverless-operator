@@ -45,7 +45,7 @@ describe('OCP UI for Serverless', () => {
     })
   })
 
-  it('can route traffic to multiple revisions', () => {
+  it.only('can route traffic to multiple revisions', () => {
     describe('deploy kservice from image', () => {
       showcaseKsvc.deployImage()
     })
