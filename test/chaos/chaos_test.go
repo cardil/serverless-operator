@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	kafkaupgrade "knative.dev/eventing-kafka/test/upgrade"
 	"knative.dev/eventing-kafka/test/upgrade/continual"
+	eventingupgrade "knative.dev/eventing/test/upgrade"
 	pkgupgrade "knative.dev/pkg/test/upgrade"
 )
 
@@ -20,9 +21,13 @@ func TestChaos(t *testing.T) {
 	cfg := newUpgradeConfig(t)
 	suite := upgrade.Suite(ctx)
 
-	// TODO: remove this after SRVKE-927 root cause is known.
+	// TODO: use all continual tests, not only eventing ones.
 	suite.Tests = pkgupgrade.Tests{
 		Continual: test.Merge(
+			[]pkgupgrade.BackgroundOperation{
+				eventingupgrade.ContinualTest(),
+			},
+			kafkaupgrade.ChannelContinualTests(continual.ChannelTestOptions{}),
 			kafkaupgrade.SourceContinualTests(continual.SourceTestOptions{}),
 		),
 	}

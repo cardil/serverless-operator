@@ -66,7 +66,7 @@ func (d *doroty) Herd() {
 	waitOrFail(d.tb, finishedWg, "finish quaking", time.Minute)
 	close(d.finishCh)
 	colddown := 20 * time.Second
-	d.log.Infof("Wait %v until dust settle...", colddown)
+	log.Infof("Wait %v until dust settle...", colddown)
 	time.Sleep(colddown)
 }
 
