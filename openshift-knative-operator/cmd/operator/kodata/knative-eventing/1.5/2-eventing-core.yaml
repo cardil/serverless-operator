@@ -4076,7 +4076,7 @@ spec:
           runAsNonRoot: true
           capabilities:
             drop:
-            - all
+            - ALL
 
         ports:
         - name: metrics
@@ -4184,7 +4184,7 @@ spec:
             runAsNonRoot: true
             capabilities:
               drop:
-              - all
+              - ALL
 
       serviceAccountName: pingsource-mt-adapter
 ---
@@ -4451,7 +4451,7 @@ spec:
           runAsNonRoot: true
           capabilities:
             drop:
-            - all
+            - ALL
 
         ports:
         - name: https-webhook
@@ -4785,7 +4785,7 @@ spec:
         averageUtilization: 100
 ---
 # Webhook PDB.
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: eventing-webhook
